@@ -269,19 +269,6 @@ local function registerAddonUser(name)
     WhoCanDo:DebugLog('New addon user ' .. name)
 end
 
-local function unregisterAddonUser(name)
-    if not tContains(addonUsers, name) then return end
-    for i = 1, #addonUsers do
-        if addonUsers[i] == name then
-            tremove(addonUsers, i)
-            if bossName == name then
-                waitAndSnatchBoss()
-            end
-            return
-        end
-    end
-end
-
 local function waitAndSnatchBoss(missedMsg)
     waitingForBoss = true
     local delay = 0
@@ -295,6 +282,19 @@ local function waitAndSnatchBoss(missedMsg)
             if missedMsg then WhoCanDo:ProcessGuildMsg(missedMsg, 'missed') end
         end
     end)
+end
+
+local function unregisterAddonUser(name)
+    if not tContains(addonUsers, name) then return end
+    for i = 1, #addonUsers do
+        if addonUsers[i] == name then
+            tremove(addonUsers, i)
+            if bossName == name then
+                waitAndSnatchBoss()
+            end
+            return
+        end
+    end
 end
 
 local function onCommReceived(prefix, msg, channel, sender)
