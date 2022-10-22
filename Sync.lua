@@ -154,11 +154,7 @@ local function compressGuildMetaData()
         local subresult = {}
         if WhoCanDo.Database[professionName] then
             for name, total in pairs(profsData) do
-                if name ~= 'Adoette' then
-                    if tContains(WhoCanDo.Guildies, name) then
-                        tinsert(subresult, name .. '-' .. total)
-                    end
-                end
+                if tContains(WhoCanDo.Guildies, name) then tinsert(subresult, name .. '-' .. total) end
             end
             local profString = professionNameToId(professionName) .. ':' .. table.concat(subresult, ',')
             tinsert(result, profString)
