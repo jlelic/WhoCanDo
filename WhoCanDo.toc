@@ -1,7 +1,7 @@
 ## Interface: 11304
 ## Title: Who Can Do
 ## Author: jlelic
-## Version: 0.2
+## Version: 0.3
 ## Notes: Tracks who can do different profesions stuff
 ## SavedVariables: WCDData WCDMetaData WCDPreferences
 ## SavedVariablesPerCharacter: 
@@ -9,7 +9,6 @@
 Libs/embeds.xml
 EventFrame.xml
 ExportFrame.xml
-#CATFrame.xml
 WhoCanDo.lua
 Sync.lua
 Database/Alchemy.lua
@@ -21,6 +20,3 @@ Database/Inscription.lua
 Database/Jewelcrafting.lua
 Database/Leatherworking.lua
 Database/Tailoring.lua
-#Store.lua
-#Encoder.lua
-#Inspector.lua

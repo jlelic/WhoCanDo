@@ -2,6 +2,7 @@ local meta
 
 local PROTOCOL_VERSION = '0'
 local PREFIX = 'WCD'
+local PREFIX_META = 'WCDM'
 local UPDATE_INTERVAL = 5
 local DELIMITER = ';'
 local COMPRESSION_LEVEL = 5
@@ -153,25 +154,35 @@ local function compressGuildMetaData()
         local subresult = {}
         if WhoCanDo.Database[professionName] then
             for name, total in pairs(profsData) do
-                if tContains(WhoCanDo.Guildies, name) then tinsert(subresult, name .. '-' .. total) end
+                if name ~= 'Adoette' then
+                    if tContains(WhoCanDo.Guildies, name) then
+                        tinsert(subresult, name .. '-' .. total)
+                    end
+                end
             end
             local profString = professionNameToId(professionName) .. ':' .. table.concat(subresult, ',')
             tinsert(result, profString)
         end
     end
-    local rawData = table.concat(result, DELIMITER)
-    local compressed = deflate:EncodeForWoWAddonChannel(deflate:CompressDeflate(rawData, {level = COMPRESSION_LEVEL}))
-    return compressed
+    local rawData = table.concat(result, '*')
+    local compressed = deflate:CompressDeflate(rawData, {level = COMPRESSION_LEVEL})
+    local encoded = deflate:EncodeForWoWAddonChannel(compressed)
+    return encoded
 end
 
 local function sendHello()
-    local msg = buildMessage(MSG_HELLO, compressGuildMetaData())
-    aceComm:SendCommMessage(PREFIX, msg, 'GUILD', nil, 'BULK')
+    local msg = buildMessage(MSG_HELLO, playerName)
+    aceComm:SendCommMessage(PREFIX, msg, 'GUILD', nil, 'NORMAL')
 end
 
 local function sendHelloBack(target)
     local msg = buildMessage(MSG_HELLOBACK, playerName)
-    aceComm:SendCommMessage(PREFIX, msg, 'WHISPER', target, 'ALERT')
+    aceComm:SendCommMessage(PREFIX, msg, 'WHISPER', target, 'NORMAL')
+end
+
+local function sendMetaData(channel, target)
+    msg = compressGuildMetaData()
+    aceComm:SendCommMessage(PREFIX_META, msg, channel, target, 'BULK')
 end
 
 local function sendImBoss()
@@ -235,9 +246,20 @@ local function updateRecipesFromMessage(message)
 end
 
 local function compareAndSync(sender, compressedMsg)
-    local data = deflate:DecompressDeflate(deflate:DecodeForWoWAddonChannel(compressedMsg), {level = COMPRESSION_LEVEL})
-    local profsData = {strsplit(DELIMITER, data)}
-    WhoCanDo:DebugLog('Compare and sync with ' .. sender)
+    WhoCanDo:DebugLog('Compare and sync with', sender)
+    local unmentionedCrafters = {}
+    if imBoss then
+        for professionName, metaData in pairs(WCDMetaData) do
+            for name, _ in pairs(metaData) do
+                unmentionedCrafters[professionName] = unmentionedCrafters[professionName] or {}
+                unmentionedCrafters[professionName][name] = true
+            end
+        end
+    end
+
+    local decoded = deflate:DecodeForWoWAddonChannel(compressedMsg)
+    local data = deflate:DecompressDeflate(decoded, {level = COMPRESSION_LEVEL})
+    local profsData = {strsplit('*', data)}
     for _, profData in ipairs(profsData) do
         local profId, charactersData = strsplit(':', profData)
         if charactersData then
@@ -248,6 +270,8 @@ local function compareAndSync(sender, compressedMsg)
                 local otherTotal = tonumber(strOtherTotal)
                 local ownTotal = (WCDMetaData[professionName] or {[name] = 0})[name]
 
+                if imBoss then unmentionedCrafters[professionName][name] = false end
+
                 if ownTotal < otherTotal then
                     enqueueEvent({type = MSG_REQUEST, name = name, profession = professionName, target = sender})
                 elseif ownTotal > otherTotal then
@@ -256,6 +280,17 @@ local function compareAndSync(sender, compressedMsg)
                     end
                 else
                     WhoCanDo:DebugLog(ownTotal .. ' entries on both ends for ' .. name .. "'s " .. professionName)
+                end
+            end
+        end
+    end
+
+    if imBoss then
+        for professionName, professionCrafters in pairs(unmentionedCrafters) do
+            for name, unmentioned in pairs(professionCrafters) do
+                if unmentioned then
+                    WhoCanDo:DebugLog(sender, 'does not have', professionName, 'data for', name)
+                    enqueueEvent({type = MSG_RECIPES, name = name, profession = professionName, target = sender})
                 end
             end
         end
@@ -289,9 +324,7 @@ local function unregisterAddonUser(name)
     for i = 1, #addonUsers do
         if addonUsers[i] == name then
             tremove(addonUsers, i)
-            if bossName == name then
-                waitAndSnatchBoss()
-            end
+            if bossName == name then waitAndSnatchBoss() end
             return
         end
     end
@@ -307,12 +340,11 @@ local function onCommReceived(prefix, msg, channel, sender)
         outOfDatMentioned = true
         return
     end
-    WhoCanDo:DebugLog(sender .. ' sent ' .. type .. ' ' .. data)
+    WhoCanDo:DebugLog(sender, 'sent', type, data)
     if type == MSG_HELLO then
         if imBoss then sendImBoss() end
         registerAddonUser(sender)
         sendHelloBack(sender)
-        compareAndSync(sender, data)
     elseif type == MSG_HELLOBACK then
         registerAddonUser(sender)
     elseif type == MSG_IM_BOSS then
@@ -329,6 +361,11 @@ local function onCommReceived(prefix, msg, channel, sender)
         unregisterAddonUser(sender)
         if sender == bossName then waitAndSnatchBoss() end
     end
+end
+
+local function onMetaDataCommReceived(prefix, msg, channel, sender)
+    WhoCanDo:DebugLog('Received meta data from', sender)
+    compareAndSync(sender, msg)
 end
 
 local function processQueue()
@@ -349,10 +386,12 @@ function WhoCanDo:InitializeSync()
     deflate = LibStub:GetLibrary("LibDeflate")
     aceComm = LibStub:GetLibrary("AceComm-3.0")
     aceComm:RegisterComm(PREFIX, onCommReceived)
+    aceComm:RegisterComm(PREFIX_META, onMetaDataCommReceived)
 
-    C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
     GuildRoster()
-    C_Timer.After(5, function() sendHello() end)
+    C_Timer.After(3, function() sendHello() end)
+    C_Timer.After(6, function() sendMetaData('GUILD') end)
+
     C_Timer.After(10, function() if waitingForBoss then waitAndSnatchBoss() end end)
 
     C_Timer.NewTicker(UPDATE_INTERVAL, processQueue)
@@ -369,9 +408,7 @@ function WhoCanDo:AnnounceNewData(professionName, name)
     enqueueEvent({type = MSG_RECIPES, name = name, profession = professionName, target = 'GUILD'})
 end
 
-function WhoCanDo:OnGuildMemberLoggedOff(name)
-    unregisterAddonUser(name)
-end
+function WhoCanDo:OnGuildMemberLoggedOff(name) unregisterAddonUser(name) end
 
 function WhoCanDo:OnLogout()
     local msg = buildMessage(MSG_BYE, playerName)

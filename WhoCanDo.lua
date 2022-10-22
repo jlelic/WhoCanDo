@@ -327,6 +327,7 @@ end
 function WhoCanDo:RecalculateMetaData(loud)
     local logFunc = loud and log or debugLog
     logFunc('Recalculating meta data...')
+    WCDMetaData = {}
     for professionName, db in pairs(WhoCanDo.Database) do
         local newMeta = {}
         for spellId, _ in pairs(db) do
