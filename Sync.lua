@@ -364,6 +364,7 @@ local function onCommReceived(prefix, msg, channel, sender)
 end
 
 local function onMetaDataCommReceived(prefix, msg, channel, sender)
+    if sender == playerName then return end
     WhoCanDo:DebugLog('Received meta data from', sender)
     compareAndSync(sender, msg)
 end
