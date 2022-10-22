@@ -1,0 +1,67 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
+    <Frame name="WhoCanDo_ExportFrame" movable="true" hidden="true" inherits="BasicFrameTemplate">
+        <Size x="560" y="300" />
+        <Anchors>
+            <Anchor point="LEFT" />
+        </Anchors>
+        <Frames>
+            <Button name="WhoCanDo_DragButton" inherits="OptionsButtonTemplate" text="WhoCanDo?">
+                <Anchors>
+                    <Anchor point="TOPLEFT">
+                        <Offset>
+                            <AbsDimension x="0" y="0" />
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+                <Scripts>
+                    <OnMouseDown>
+                        self:GetParent():StartMoving()
+                    </OnMouseDown>
+                    <OnMouseUp>
+                        self:GetParent():StopMovingOrSizing()
+                    </OnMouseUp>
+                </Scripts>
+            </Button>
+            <ScrollFrame name="WhoCanDo_ScrollFrame" inherits="UIPanelScrollFrameTemplate" toplevel="true">
+                <Anchors>
+                    <Anchor point="TOP" relativePoint="BOTTOM">
+                        <Offset>
+                            <AbsDimension x="0" y="10" />
+                        </Offset>
+                    </Anchor>
+                    <Anchor point="BOTTOM" relativePoint="TOP">
+                        <Offset>
+                            <AbsDimension x="0" y="-30" />
+                        </Offset>
+                    </Anchor>
+                    <Anchor point="LEFT">
+                        <Offset>
+                            <AbsDimension x="10" y="0" />
+                        </Offset>
+                    </Anchor>
+                    <Anchor point="RIGHT">
+                        <Offset>
+                            <AbsDimension x="-30" y="0" />
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+                <ScrollChild>
+                    <EditBox name="WhoCanDo_EditBox" letters="99999" multiLine="true" autoFocus="true" enableMouse="true">
+                        <Size>
+                            <AbsDimension x="540" y="280" />
+                        </Size>
+                        <FontString inherits="GameFontHighlightSmall" />
+                        <Scripts>
+                            <OnLoad>
+                                self:SetAutoFocus(true)
+                            </OnLoad>
+                            <OnEscapePressed>
+                                self:ClearFocus()
+                            </OnEscapePressed>
+                        </Scripts>
+                    </EditBox>
+                </ScrollChild>
+            </ScrollFrame>
+        </Frames>
+    </Frame>
+</Ui>
