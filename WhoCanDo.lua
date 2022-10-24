@@ -305,6 +305,8 @@ local function processEvent(event, type, ...)
         debounceSkillUpdate()
     elseif type == 'CHAT_MSG_GUILD' then
         WhoCanDo:ProcessGuildMsg(...)
+    elseif type == 'CHAT_MSG_SYSTEM' then
+        WhoCanDo:ProcessSystemMsg(...)
     elseif type == 'GUILD_ROSTER_UPDATE' then
         processGuildPlayers()
     elseif type == 'PLAYER_LOGOUT' then
@@ -319,6 +321,7 @@ function WhoCanDo:Start()
     WhoCanDoEventFrame:RegisterEvent('TRADE_SKILL_CLOSE')
     WhoCanDoEventFrame:RegisterEvent('CHAT_MSG_GUILD')
     WhoCanDoEventFrame:RegisterEvent('CHAT_MSG_ADDON')
+    WhoCanDoEventFrame:RegisterEvent('CHAT_MSG_SYSTEM')
     WhoCanDoEventFrame:RegisterEvent('GUILD_ROSTER_UPDATE')
     WhoCanDoEventFrame:RegisterEvent('PLAYER_LOGOUT')
     WhoCanDoEventFrame:SetScript('OnEvent', processEvent)

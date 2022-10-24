@@ -3,7 +3,7 @@ local meta
 local PROTOCOL_VERSION = '0'
 local PREFIX = 'WCD'
 local PREFIX_META = 'WCDM'
-local UPDATE_INTERVAL = 5
+local UPDATE_INTERVAL = 3
 local DELIMITER = ';'
 local COMPRESSION_LEVEL = 5
 local MSG_HELLO = 'HELLO'
@@ -13,6 +13,8 @@ local MSG_REQUEST = 'REQUEST'
 local MSG_RECIPES = 'R'
 local MSG_BYE = 'BYE'
 local BOSS_TTL = 5
+
+local EVENT_DELIMITER = 'END'
 
 local aceComm
 
@@ -291,6 +293,8 @@ local function compareAndSync(sender, compressedMsg)
             end
         end
     end
+
+    enqueueEvent({type = EVENT_DELIMITER})
 end
 
 local function registerAddonUser(name)
@@ -376,6 +380,12 @@ local function processQueue()
     end
 end
 
+local function clearQueueFor(target)
+    while firstEvent and firstEvent.data.target == target do
+        popNextEvent()
+    end
+end
+
 function WhoCanDo:AmBoss() return imBoss end
 
 function WhoCanDo:InitializeSync()
@@ -410,6 +420,13 @@ function WhoCanDo:OnGuildMemberLoggedOff(name) unregisterAddonUser(name) end
 function WhoCanDo:OnLogout()
     local msg = buildMessage(MSG_BYE, playerName)
     aceComm:SendCommMessage(PREFIX, msg, 'GUILD', nil, 'ALERT')
+end
+
+function WhoCanDo:ProcessSystemMsg(msg)
+    if strsub(msg,1,15) == 'No player named' then
+        local _, name = strsplit("'",msg)
+        clearQueueFor(name)
+    end
 end
 
 function WhoCanDo:GetAddonUsers() return addonUsers end
