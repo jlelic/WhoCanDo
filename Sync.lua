@@ -266,7 +266,14 @@ local function compareAndSync(sender, compressedMsg)
             for _, entry in ipairs(entries) do
                 local name, strOtherTotal = strsplit('-', entry)
                 local otherTotal = tonumber(strOtherTotal)
-                local ownTotal = (WCDMetaData[professionName] or {[name] = 0})[name]
+                if not otherTotal then
+                    WhoCanDo:DebugLog('otherTotal parsed to nil!')
+                    WhoCanDo:DebugLog(professionName, name)
+                    WhoCanDo:DebugLog(strOtherTotal)
+                    WhoCanDo:DebugLog(data)
+                    otherTotal = 0
+                end
+                local ownTotal = (WCDMetaData[professionName] or {[name] = 0})[name] or 0
 
                 if imBoss then unmentionedCrafters[professionName][name] = false end
 
